@@ -1,3 +1,6 @@
 .*
 *~
 *.zip
+*.png
+*.svg
+__pycache__
