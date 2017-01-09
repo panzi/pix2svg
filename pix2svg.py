@@ -3,6 +3,7 @@
 import sys
 from PIL import Image
 from array import array
+import argparse
 
 TOP_LEFT     = 1
 TOP_RIGHT    = 2
@@ -45,7 +46,7 @@ def isline(p1, p2, p3):
 
 	return False
 
-def optimize(subpath):
+def optimize_subpath(subpath):
 	if len(subpath) < 3:
 		return subpath
 
@@ -67,7 +68,7 @@ def optimize(subpath):
 
 	return optpath
 
-def pix2svg(pixfile, svgfile):
+def pix2svg(pixfile, svgfile, optimize=True):
 	im = Image.open(pixfile, 'r')
 	pix = im.load()
 	width, height = im.size
@@ -138,8 +139,11 @@ def pix2svg(pixfile, svgfile):
 					if subpath:
 						path.append(subpath)
 
-	paths = [(color, [optimize(subpath) for subpath in path])
-		for color, path in paths_by_color.items()]
+	if optimize:
+		paths = [(color, [optimize_subpath(subpath) for subpath in path])
+			for color, path in paths_by_color.items()]
+	else:
+		paths = list(paths_by_color.items())
 
 	svgfile.write('''\
 <?xml version="1.0" encoding="UTF-8" ?>
@@ -173,19 +177,18 @@ def pix2svg(pixfile, svgfile):
 ''')
 
 def main(args):
-	if len(args) > 0:
-		pixfile = open(args[0], 'rb')
-	else:
-		pixfile = sys.stdin
+	parser = argparse.ArgumentParser(description='Convert pixle art to SVG.')
+	parser.add_argument('--no-optimize', dest='optimize', action='store_false',
+		help="Don't optimize generated paths.")
+	parser.set_defaults(optimize=True)
 
-	with pixfile:
-		if len(args) > 1:
-			svgfile = open(args[1], 'w')
-		else:
-			svgfile = sys.stdout
+	parser.add_argument('input', type=argparse.FileType('rb'), default=sys.stdin, nargs='?')
+	parser.add_argument('output', type=argparse.FileType('w'), default=sys.stdout, nargs='?')
 
-		with svgfile:
-			pix2svg(pixfile, svgfile)
+	opts = parser.parse_args(args)
+
+	with opts.input, opts.output:
+		pix2svg(opts.input, opts.output, opts.optimize)
 
 if __name__ == '__main__':
 	main(sys.argv[1:])
