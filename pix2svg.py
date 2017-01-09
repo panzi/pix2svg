@@ -68,6 +68,28 @@ def optimize_subpath(subpath):
 
 	return optpath
 
+def stringify_path(path):
+	it = iter(path)
+	last_x, last_y = p = next(it)
+	strpath = ['M%d,%d' % p]
+
+	for x, y in it:
+		dx = x - last_x
+		dy = y - last_y
+
+		if dx == 0:
+			strpath.append('v%d' % dy)
+		elif dy == 0:
+			strpath.append('h%d' % dx)
+		else:
+			strpath.append('l%d,%d' % (dx, dy))
+
+		last_x = x
+		last_y = y
+
+	strpath.append('Z')
+	return ''.join(strpath)
+
 def pix2svg(pixfile, svgfile, optimize=True):
 	im = Image.open(pixfile, 'r')
 	pix = im.load()
@@ -148,31 +170,27 @@ def pix2svg(pixfile, svgfile, optimize=True):
 	svgfile.write('''\
 <?xml version="1.0" encoding="UTF-8" ?>
 <svg xmlns="http://www.w3.org/2000/svg" version="1.1"
-  width="{width}px" height="{height}px" viewBox="0 0 {width} {height}">
-  <defs />
-  <g style="fill-rule:evenodd;">
+ width="{width}px" height="{height}px" viewBox="0 0 {width} {height}">
+ <defs/>
+ <g style="fill-rule:evenodd;">
 '''.format(width=width, height=height))
 
 	for color, path in paths:
 		alpha = color[3]
 		strcolor = '#%02x%02x%02x' % color[:3]
-		strpath = ' '.join(
-			'M%d %d %sZ' % (
-				subpath[0][0], subpath[0][1], ''.join(
-					'L%d %d ' % point for point in subpath[1:]))
-			for subpath in path)
+		strpath = ' '.join(stringify_path(subpath) for subpath in path)
 
 		if alpha < 1.0:
 			svgfile.write('''\
-    <path fill="{color}" d="{path}" opacity="{alpha}" />
+  <path fill="{color}" d="{path}" opacity="{alpha}"/>
 '''.format(color=strcolor, path=strpath, alpha=255.0 / alpha))
 		else:
 			svgfile.write('''\
-    <path fill="{color}" d="{path}" />
+  <path fill="{color}" d="{path}"/>
 '''.format(color=strcolor, path=strpath))
 
 	svgfile.write('''\
-  </g>
+ </g>
 </svg>
 ''')
 
