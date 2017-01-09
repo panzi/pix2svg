@@ -140,7 +140,7 @@ def pix2svg(pixfile, svgfile, optimize=True):
 					y = y1
 					corner = corn1
 			else:
-				# ?. 
+				# ?.
 				# ?X
 				subpath.append((x + dx, y + dy))
 				corner = next_corn
